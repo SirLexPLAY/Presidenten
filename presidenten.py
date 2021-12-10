@@ -143,11 +143,10 @@ class Game:
         values = {1:'A', 11:'J', 12:'Q', 13:'K'}
 
         if self.message is not None:
-            print(self.message + "\n")
+            print(self.message)
             self.message = None
 
         print("Dette er dine kort: \n")
-        print(chosen)
         for i in range(len(deck)):
             sym = deck[i][0]
             val = deck[i][1]
@@ -175,16 +174,38 @@ class Game:
         input("Klikk ENTER for å komme tilbake til spillet...")
 
 
+    def is_int(self, str):
+        numbers = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+        for i in str:
+            if i not in numbers:
+                return False
+
+        return True
+
+
+    def valid_choice(self):
+
+
+
     def first_round(self, player_index):
         clear()
         max_cards = self.common_num_freq(self.players[player_index].deck)
         self.nice_print(self.players[player_index].deck, self.chosen)
         print(f"Hva vil du gjøre? Du kan starte spillet med {max_cards} kort.")
-        print(f"Skriv '0' for å få opp en liste med kommandoer.")
-        choice = int(input("> "))
+        print(f"Skriv 'HJELP' for å få opp en liste med kommandoer.")
+        choice = input("> ")
 
-        if choice == 0:
-            self.help()
+        is_int = self.is_int(choice)
+
+        if not is_int:
+            if choice.lower() == "hjelp":
+                self.help()
+            if choice.lower() == "ferdig":
+                self.round_type = len(self.chosenß)
+                pass
+            if choice.lower() == "passer":
+                self.has_passed.append(player_index)
+                self.player_done == True
         else:
             choice = int(choice)-1  # Konverteret kortnummer til index
             amount_cards = len(self.players[player_index].deck)
