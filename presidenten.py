@@ -134,26 +134,26 @@ class Game:
         return play
 
 
+    def nice_convert(self, card):
+        symbols = {'club':'♣', 'spade':'♠', 'heart':'♥', 'diamond':'♦'}
+        values = {1:'A', 11:'J', 12:'Q', 13:'K'}
+
+        sym = symbols[card[0]]
+        val = card[1]
+        if val in [1] + list(range(11,14)):
+            val = values[card[1]]
+
+        return sym, val
+
+
     def nice_print(self, deck, chosen):
         """
         Tar inn liste (bunke) med kort.
         Printer dem ut i konsollen med en finere formatering.
         """
-        symbols = {'club':'♣', 'spade':'♠', 'heart':'♥', 'diamond':'♦'}
-        values = {1:'A', 11:'J', 12:'Q', 13:'K'}
-
-        if self.message is not None:
-            print(self.message)
-            self.message = None
-
         print("Dette er dine kort: \n")
         for i in range(len(deck)):
-            sym = deck[i][0]
-            val = deck[i][1]
-
-            sym = symbols[sym]
-            if val in [1] + list(range(11,14)):
-                val = values[val]
+            sym, val = self.nice_convert(deck[i])
 
             if i in chosen:
                 string = f'> {i+1:2}. {sym}{val}'
@@ -183,11 +183,12 @@ class Game:
         return True
 
 
-    def valid_choice(self, player_index):
+    def valid_choice(self):
         choice_is_valid = True
 
         # SJEKK OM SPILLEREN HAR VALGT RIKTIG ANTALL KORT
-        if not self.first_move and len(self.chosen) == self.round_type:  # Gjelder for alle andre spillere
+        if not self.first_move and not len(self.chosen) == self.round_type:  # Gjelder for alle andre spillere
+            self.message = "Du har valgt for mange kort!"
             return False
         elif len(self.chosen) > self.max_cards:  # Gjelder kun for den første spilleren i runden
             self.message = "Du har valgt for mange kort!"
@@ -196,9 +197,9 @@ class Game:
         # SJEKK OM KORTENE SPILLEREN VIL LEGGE UT HAR SAMME VERDI
         cards = []
         for i in self.chosen:
-            cards.append(self.players[player_index].deck[i])
+            cards.append(self.players[self.player_index].deck[i])
 
-        values = list(zip(*cards))[1]
+        values = list(list((zip(*cards)))[1])
         jokers = 0  # Teller antall jokere
         while 6 in values:
             jokers += 1
@@ -210,21 +211,59 @@ class Game:
                     self.message = "Du har valgt kort med ulike verdier!"
                     return False
 
-
-
         # SJEKK OM SISTE KORTET FRA BUNKEN TIL SPILLEREN SOM ER BLITT LAGT UT ER KLØVER 3
-        if len(self.players[player_index].deck) == 1 and self.chosen[0] == ("club", 3):
+        if len(self.players[self.player_index].deck) == 1 and self.chosen[0] == ("club", 3):
+            self.message = "Spillet kan ikke avsluttes med ♣3!"
             return False
+
+        # SJEKK OM VERDIEN ER HØYERE ENN VERDIEN FRA FORRIGE SPILLER
+        if not self.first_move:
+            last_move = self.history[-1]
+            last_move_value = 0
+            for card in last_move:
+                if card[1] != 6:
+                    last_move_value = card[1]
+            if values[0] < last_move_value:
+                self.message = "Du må velge kort med høyere verdi enn det forrige spiller har lagt ut!"
+                return False
 
         return True
 
 
-    def first_round(self, player_index):
+    def make_move(self):
+        cards = []
+        for i in self.chosen:
+            cards.append(self.players[self.player_index].deck.pop(i))
+
+        self.history.append(cards)
+        self.chosen = []
+        self.player_done = True
+
+        if self.player_index == len(self.players):
+            self.player_index = 0
+        else:
+            self.player_index += 1
+
+
+    def play_round(self):
         clear()
-        self.max_cards = self.common_num_freq(self.players[player_index].deck)
-        self.nice_print(self.players[player_index].deck, self.chosen)
-        print(f"Hva vil du gjøre? Du kan starte spillet med {self.max_cards} kort.")
+        print(f"Nå er det {self.players[self.player_index].name} som spiller!")
+        self.max_cards = self.common_num_freq(self.players[self.player_index].deck)
+        self.nice_print(self.players[self.player_index].deck, self.chosen)
+        if self.first_move:
+            print(f"Hva vil du gjøre? Du kan starte spillet med {self.max_cards} kort.")
+        else:
+            print(f"Forrige kort som ble lagt ut er: ", end="")
+            for card in self.history[-1]:
+                sym, val = self.nice_convert(card)
+                print(f"{sym}{val} ", end="")
+            print()
+            print(f"Hva vil du gjøre? Du må legge ut {self.round_type} kort.")
         print(f"Skriv 'HJELP' for å få opp en liste med kommandoer.")
+        if self.message is not None:
+            print(self.message)
+            print()
+            self.message = None
         option = input("> ")
 
         is_int = self.is_int(option)
@@ -235,15 +274,18 @@ class Game:
             if option.lower() == "hjelp":
                 self.help()
             elif option.lower() == "ferdig":
-                self.round_type = len(self.chosen)
-                if self.valid_choice(player_index):
-                    print("Kombinasjonen er lovlig!")
+                if self.first_move:
+                    self.round_type = len(self.chosen)
+                if self.valid_choice():
+                    self.make_move()
+                    if self.first_move:
+                        self.first_move = False
             elif option.lower() == "passer":
-                self.has_passed.append(player_index)
-                self.player_done == True
+                self.has_passed.append(self.player_index)
+                self.player_done = True
         else:
             option = int(option)-1  # Konverteret kortnummer til index
-            amount_cards = len(self.players[player_index].deck)
+            amount_cards = len(self.players[self.player_index].deck)
 
             if len(self.chosen) < self.max_cards:
                 if option in range(amount_cards+1) and option not in self.chosen:
@@ -256,17 +298,15 @@ class Game:
                 self.message = "Du kan ikke velge mellom flere kort."
 
 
-
     def run_game(self):
         clear()
         for i in range(len(self.players)):
-            if i not in self.has_passed:
+            if len(self.has_passed) == len(self.players)-len(self.is_finished):
+                self.has_passed = []
+            elif i not in self.has_passed:
                 self.player_done = False    # False = spilleren er ikke ferdig, True = spilleren er ferdig
                 while not self.player_done:
-                    if self.first_move:
-                        self.first_round(i)
-
-
+                    self.play_round()
 
 
     def init_game(self, number_of_players):
@@ -282,17 +322,17 @@ class Game:
             name = input("> ")
             self.players.append(Player(name, deck.decks[i]))
 
-        self.game_state = True   # Spiller er spilt
+        self.game_state = True    # Spiller er spilt
         self.history = []         # Historikk av alle kort som ble lagt ut
         self.chosen = []          # Hvilke kort som ble valgt av spilleren.
         self.round_type = 0       # Runden spilles 1=enkelt, 2=dobbelt, 3=trippelt, 0=ikke angitt
         self.first_move = True    # Hvis True: spilleren er den første i runden
         self.has_passed = []      # Indekser over spillere som har passert
+        self.is_finished = []     # Indekser over spiller som er ferdig med spillet
+        self.player_index = 0     # Indeksen til spiller som spiller runden
 
         while self.game_state:
             self.run_game()
-
-
 
 
 def main():
