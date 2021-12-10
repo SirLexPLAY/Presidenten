@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import random
 import os
+import time
 clear = lambda: os.system('clear')
 clear()
 
@@ -133,7 +134,7 @@ class Game:
         return play
 
 
-    def nice_print(self, deck):
+    def nice_print(self, deck, chosen):
         """
         Tar inn liste (bunke) med kort.
         Printer dem ut i konsollen med en finere formatering.
@@ -141,7 +142,12 @@ class Game:
         symbols = {'club':'♣', 'spade':'♠', 'heart':'♥', 'diamond':'♦'}
         values = {1:'A', 11:'J', 12:'Q', 13:'K'}
 
-        print("Dine kort: \n")
+        if self.message is not None:
+            print(self.message + "\n")
+            self.message = None
+
+        print("Dette er dine kort: \n")
+        print(chosen)
         for i in range(len(deck)):
             sym = deck[i][0]
             val = deck[i][1]
@@ -150,23 +156,61 @@ class Game:
             if val in [1] + list(range(11,14)):
                 val = values[val]
 
-            string = f'{sym}{val}'
+            if i in chosen:
+                string = f'> {i+1:2}. {sym}{val}'
+            else:
+                string = f'  {i+1:2}. {sym}{val}'
+
             print(string)
+        print("")
+
+
+    def help(self):
+        clear()
+        print("For å velge et kort, skriv kortnummeret og bekreft med ENTER.")
+        print("For å angre, skriv kortnummeret til kortet du vil angre på, og bekreft med ENTER.")
+        print("For å bekrefte valget ditt, skriv 'FERDIG', og bekreft med ENTER.")
+        print("Hvis du ønsker å passere, skriv 'PASSER', og bekreft med ENTER.")
+        print()
+        input("Klikk ENTER for å komme tilbake til spillet...")
+
+
+    def first_round(self, player_index):
+        clear()
+        max_cards = self.common_num_freq(self.players[player_index].deck)
+        self.nice_print(self.players[player_index].deck, self.chosen)
+        print(f"Hva vil du gjøre? Du kan starte spillet med {max_cards} kort.")
+        print(f"Skriv '0' for å få opp en liste med kommandoer.")
+        choice = int(input("> "))
+
+        if choice == 0:
+            self.help()
+        else:
+            choice = int(choice)-1  # Konverteret kortnummer til index
+            amount_cards = len(self.players[player_index].deck)
+
+            if len(self.chosen) < max_cards:
+                if choice in range(amount_cards+1) and choice not in self.chosen:
+                    self.chosen.append(choice)
+                elif choice in range(amount_cards+1) and choice in self.chosen:
+                    self.chosen.remove(choice)
+            elif len(self.chosen) >= max_cards and choice in self.chosen:
+                self.chosen.remove(choice)
+            else:
+                self.message = "Du kan ikke velge mellom flere kort."
+
 
 
     def run_game(self):
         clear()
-        history = []         # Historikk av alle kort som ble lagt ut
-        round_type = 0       # Runden spilles 1=enkelt, 2=dobbelt, 3=trippelt, 0=ikke angitt
-        first_round = True   # Hvis True: spilleren er den første i runden
-        has_passed = []      # Indekser over spillere som har passert
-
         for i in range(len(self.players)):
-            if i not in has_passed:
-                if first_round:
-                    self.common_num_freq(self.players[i].deck)
-                    self.nice_print(self.players[i].deck)
-                    exit()
+            if i not in self.has_passed:
+                self.player_done = False    # False = spilleren er ikke ferdig, True = spilleren er ferdig
+                while not self.player_done:
+                    if self.first_move:
+                        self.first_round(i)
+
+
 
 
     def init_game(self, number_of_players):
@@ -183,6 +227,11 @@ class Game:
             self.players.append(Player(name, deck.decks[i]))
 
         self.game_state = True   # Spiller er spilt
+        self.history = []         # Historikk av alle kort som ble lagt ut
+        self.chosen = []          # Hvilke kort som ble valgt av spilleren.
+        self.round_type = 0       # Runden spilles 1=enkelt, 2=dobbelt, 3=trippelt, 0=ikke angitt
+        self.first_move = True    # Hvis True: spilleren er den første i runden
+        self.has_passed = []      # Indekser over spillere som har passert
 
         while self.game_state:
             self.run_game()
