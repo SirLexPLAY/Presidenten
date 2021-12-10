@@ -183,40 +183,75 @@ class Game:
         return True
 
 
-    def valid_choice(self):
+    def valid_choice(self, player_index):
+        choice_is_valid = True
 
+        # SJEKK OM SPILLEREN HAR VALGT RIKTIG ANTALL KORT
+        if not self.first_move and len(self.chosen) == self.round_type:  # Gjelder for alle andre spillere
+            return False
+        elif len(self.chosen) > self.max_cards:  # Gjelder kun for den første spilleren i runden
+            self.message = "Du har valgt for mange kort!"
+            return False
+
+        # SJEKK OM KORTENE SPILLEREN VIL LEGGE UT HAR SAMME VERDI
+        cards = []
+        for i in self.chosen:
+            cards.append(self.players[player_index].deck[i])
+
+        values = list(zip(*cards))[1]
+        jokers = 0  # Teller antall jokere
+        while 6 in values:
+            jokers += 1
+            values.remove(6)
+
+        if len(values) > 1:
+            for i in range(len(values)-1):
+                if not values[i+1] == values[i]:
+                    self.message = "Du har valgt kort med ulike verdier!"
+                    return False
+
+
+
+        # SJEKK OM SISTE KORTET FRA BUNKEN TIL SPILLEREN SOM ER BLITT LAGT UT ER KLØVER 3
+        if len(self.players[player_index].deck) == 1 and self.chosen[0] == ("club", 3):
+            return False
+
+        return True
 
 
     def first_round(self, player_index):
         clear()
-        max_cards = self.common_num_freq(self.players[player_index].deck)
+        self.max_cards = self.common_num_freq(self.players[player_index].deck)
         self.nice_print(self.players[player_index].deck, self.chosen)
-        print(f"Hva vil du gjøre? Du kan starte spillet med {max_cards} kort.")
+        print(f"Hva vil du gjøre? Du kan starte spillet med {self.max_cards} kort.")
         print(f"Skriv 'HJELP' for å få opp en liste med kommandoer.")
-        choice = input("> ")
+        option = input("> ")
 
-        is_int = self.is_int(choice)
+        is_int = self.is_int(option)
 
-        if not is_int:
-            if choice.lower() == "hjelp":
+        if option == "":
+            pass
+        elif not is_int:
+            if option.lower() == "hjelp":
                 self.help()
-            if choice.lower() == "ferdig":
-                self.round_type = len(self.chosenß)
-                pass
-            if choice.lower() == "passer":
+            elif option.lower() == "ferdig":
+                self.round_type = len(self.chosen)
+                if self.valid_choice(player_index):
+                    print("Kombinasjonen er lovlig!")
+            elif option.lower() == "passer":
                 self.has_passed.append(player_index)
                 self.player_done == True
         else:
-            choice = int(choice)-1  # Konverteret kortnummer til index
+            option = int(option)-1  # Konverteret kortnummer til index
             amount_cards = len(self.players[player_index].deck)
 
-            if len(self.chosen) < max_cards:
-                if choice in range(amount_cards+1) and choice not in self.chosen:
-                    self.chosen.append(choice)
-                elif choice in range(amount_cards+1) and choice in self.chosen:
-                    self.chosen.remove(choice)
-            elif len(self.chosen) >= max_cards and choice in self.chosen:
-                self.chosen.remove(choice)
+            if len(self.chosen) < self.max_cards:
+                if option in range(amount_cards+1) and option not in self.chosen:
+                    self.chosen.append(option)
+                elif option in range(amount_cards+1) and option in self.chosen:
+                    self.chosen.remove(option)
+            elif len(self.chosen) >= self.max_cards and option in self.chosen:
+                self.chosen.remove(option)
             else:
                 self.message = "Du kan ikke velge mellom flere kort."
 
