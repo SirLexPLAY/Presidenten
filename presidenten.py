@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import random
 import os
-import time
 clear = lambda: os.system('clear')
 clear()
 
@@ -19,7 +18,7 @@ class Deck:
         """
         self.cards = []
         self.decks = []
-        for s in ('Ruter', 'Hjerter', 'Spar', 'Kløver'):
+        for s in ('diamond', 'heart', 'spade', 'club'):
             for v in range(1, 14):
                 self.cards.append((s,v))
 
@@ -56,15 +55,15 @@ class Deck:
         for i in range(n):
             deck = self.hand_out(cards_per_player)
             self.decks.append(sorted(deck, key=lambda x: x[1]))
-        for i in self.decks:
-            print(i)
-            print("")
+
+
 
 
 class Player():
     def __init__(self, name, deck):
         self.name = name
         self.deck = deck
+
 
 
 class Game:
@@ -76,6 +75,7 @@ class Game:
         clear()
         print("Thank you for playing!")
         print("© 2021-2022 Made by Dawid Sz.")
+        print()
         quit()
 
 
@@ -114,15 +114,48 @@ class Game:
             self.exit()
 
 
-    def first_round(self, deck):
+    def common_num_freq(self, deck):
+        values = list(zip(*deck))[1]
+
+        play = 1
+        count = 0
+        val = 0
+        for i in values:
+            if i == val:
+                count += 1
+                if count > play:
+                    play = count
+
+            else:
+                val = i
+                count = 1
+
+        return play
+
+
+    def nice_print(self, deck):
         """
-        Funksjonen skal ta inn kortstokken til spilleren.
-        Den skal så sjekke om spilleren kan spille enkelt, dobbelt og trippelt.
+        Tar inn liste (bunke) med kort.
+        Printer dem ut i konsollen med en finere formatering.
         """
-        print("Undefined function.")
+        symbols = {'club':'♣', 'spade':'♠', 'heart':'♥', 'diamond':'♦'}
+        values = {1:'A', 11:'J', 12:'Q', 13:'K'}
+
+        print("Dine kort: \n")
+        for i in range(len(deck)):
+            sym = deck[i][0]
+            val = deck[i][1]
+
+            sym = symbols[sym]
+            if val in [1] + list(range(11,14)):
+                val = values[val]
+
+            string = f'{sym}{val}'
+            print(string)
 
 
     def run_game(self):
+        clear()
         history = []         # Historikk av alle kort som ble lagt ut
         round_type = 0       # Runden spilles 1=enkelt, 2=dobbelt, 3=trippelt, 0=ikke angitt
         first_round = True   # Hvis True: spilleren er den første i runden
@@ -131,10 +164,9 @@ class Game:
         for i in range(len(self.players)):
             if i not in has_passed:
                 if first_round:
-                    self.first_round(self.players[i].deck)
-                    self.exit()
-
-
+                    self.common_num_freq(self.players[i].deck)
+                    self.nice_print(self.players[i].deck)
+                    exit()
 
 
     def init_game(self, number_of_players):
@@ -144,7 +176,6 @@ class Game:
         deck.shuffle()
         deck.split(number_of_players)
 
-        input("Press Enter to continue...")
         for i in range(number_of_players):
             clear()
             print(f"Name of player {i+1}:")
