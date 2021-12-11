@@ -2,7 +2,7 @@
 Prosjekt som handler om å få simulert kortspillet "Presidenten"
 
 # Idébank
-## HP - Høy prioritet, MP - Middels prioritet, LP - Lav prioritet
+*HP - Høy prioritet, MP - Middels prioritet, LP - Lav prioritet*
 - [HP] Legge inn muligheten for å lagre/laste inn et spill
 - [HP] Utvikle "innstillinger" menyen
 - [MP] Legge inn flere språk
