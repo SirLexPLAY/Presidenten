@@ -61,8 +61,9 @@ class Deck:
 
 
 class Player():
-    def __init__(self, name, deck):
+    def __init__(self, name, index, deck):
         self.name = name
+        self.index = index
         self.deck = deck
 
 
@@ -70,6 +71,7 @@ class Player():
 class Game:
     def __init__(self):
         self.message = None
+        self.order_of_cards = [3,4,5,7,8,9,10,11,12,13,1,2]
 
 
     def exit(self):
@@ -89,7 +91,7 @@ class Game:
         print("Hva vil du gjøre?")
         print("1. Starte nytt spill")
         print("2. Laste inn et spill (INDEV)")
-        print("3. Innstillinger")
+        print("3. Innstillinger (INDEV)")
         print("4. Gå ut av spillet")
         choice = input("> ")
         if choice is not "":
@@ -109,7 +111,7 @@ class Game:
             self.message = "Denne funksjonen er under utvikling!"
 
         elif choice == 3:
-            return
+            self.message = "Denne funksjonen er under utvikling!"
 
         elif choice == 4:
             self.exit()
@@ -132,6 +134,13 @@ class Game:
                 count = 1
 
         return play
+
+
+    def is_greater(self, card1, card2):
+        index1 = self.order_of_cards.index(card1)
+        index2 = self.order_of_cards.index(card2)
+
+        return index1 > index2
 
 
     def nice_convert(self, card):
@@ -186,10 +195,31 @@ class Game:
     def valid_choice(self):
         choice_is_valid = True
 
+        # SJEKK OM SISTE KORTET FRA BUNKEN TIL SPILLEREN SOM ER BLITT LAGT UT ER KLØVER 3
+        if len(self.players[self.player_index].deck) == 1:
+            if self.players[self.player_index].deck[self.chosen[0]] == ("club", 3):
+                self.message = "Spillet kan ikke avsluttes med ♣3!"
+                return False
+
+        # SJEKK OM DET ER KLØVER 3 HVIS DET BLE LAGT UT FLERE ENN ET KORT
+        if len(self.chosen) > 1:
+            for i in self.chosen:
+                if self.players[self.player_index].deck[i] == ("club", 3):
+                    self.message = "♣3 kan kun legges ut alene!"
+                    return False
+
+        # SJEKK OM KLØVER 3 BLE LAGT UT ALENE
+        if self.players[self.player_index].deck[self.chosen[0]] == ("club", 3) and len(self.chosen) == 1:
+            return True
+
         # SJEKK OM SPILLEREN HAR VALGT RIKTIG ANTALL KORT
-        if not self.first_move and not len(self.chosen) == self.round_type:  # Gjelder for alle andre spillere
-            self.message = "Du har valgt for mange kort!"
-            return False
+        if not self.first_move:  # Gjelder for alle andre spillere
+            if len(self.chosen) < self.round_type:
+                self.message = "Du har valgt for få kort!"
+                return False
+            if len(self.chosen) > self.round_type:
+                self.message = "Du har valgt for mange kort!"
+                return False
         elif len(self.chosen) > self.max_cards:  # Gjelder kun for den første spilleren i runden
             self.message = "Du har valgt for mange kort!"
             return False
@@ -211,11 +241,6 @@ class Game:
                     self.message = "Du har valgt kort med ulike verdier!"
                     return False
 
-        # SJEKK OM SISTE KORTET FRA BUNKEN TIL SPILLEREN SOM ER BLITT LAGT UT ER KLØVER 3
-        if len(self.players[self.player_index].deck) == 1 and self.chosen[0] == ("club", 3):
-            self.message = "Spillet kan ikke avsluttes med ♣3!"
-            return False
-
         # SJEKK OM VERDIEN ER HØYERE ENN VERDIEN FRA FORRIGE SPILLER
         if not self.first_move:
             last_move = self.history[-1]
@@ -223,7 +248,7 @@ class Game:
             for card in last_move:
                 if card[1] != 6:
                     last_move_value = card[1]
-            if values[0] < last_move_value:
+            if self.is_greater(last_move_value, values[0]):
                 self.message = "Du må velge kort med høyere verdi enn det forrige spiller har lagt ut!"
                 return False
 
@@ -232,22 +257,47 @@ class Game:
 
     def make_move(self):
         cards = []
+        self.chosen.sort(reverse=True)
         for i in self.chosen:
             cards.append(self.players[self.player_index].deck.pop(i))
 
         self.history.append(cards)
         self.chosen = []
-        self.player_done = True
 
-        if self.player_index == len(self.players):
-            self.player_index = 0
+        if ("club", 3) in cards:
+            self.first_move = True
+        elif self.first_move:
+            self.first_move = False
+            self.next_player()
         else:
-            self.player_index += 1
+            self.next_player()
+
+
+    def check_all_passed(self):
+        if len(self.players_left)-1 <= len(self.has_passed):
+            self.has_passed = []
+            self.first_move = True
+
+
+    def next_player(self):
+        if self.player_index >= self.players_left[-1]:
+            for i in self.players_left:
+                if i not in self.has_passed:
+                    self.player_index = self.players_left[0]
+                    self.player_done = True
+                    return
+        else:
+            for i in self.players_left:
+                if i > self.player_index and i not in self.has_passed:
+                    self.player_index = i
+                    self.player_done = True
+                    return
 
 
     def play_round(self):
         clear()
         print(f"Nå er det {self.players[self.player_index].name} som spiller!")
+        print(f"self.chosen: {self.chosen}")
         self.max_cards = self.common_num_freq(self.players[self.player_index].deck)
         self.nice_print(self.players[self.player_index].deck, self.chosen)
         if self.first_move:
@@ -278,11 +328,10 @@ class Game:
                     self.round_type = len(self.chosen)
                 if self.valid_choice():
                     self.make_move()
-                    if self.first_move:
-                        self.first_move = False
             elif option.lower() == "passer":
+                self.chosen = []
                 self.has_passed.append(self.player_index)
-                self.player_done = True
+                self.next_player()
         else:
             option = int(option)-1  # Konverteret kortnummer til index
             amount_cards = len(self.players[self.player_index].deck)
@@ -296,14 +345,13 @@ class Game:
                 self.chosen.remove(option)
             else:
                 self.message = "Du kan ikke velge mellom flere kort."
+        self.check_all_passed()
 
 
     def run_game(self):
         clear()
         for i in range(len(self.players)):
-            if len(self.has_passed) == len(self.players)-len(self.is_finished):
-                self.has_passed = []
-            elif i not in self.has_passed:
+            if i not in self.has_passed:
                 self.player_done = False    # False = spilleren er ikke ferdig, True = spilleren er ferdig
                 while not self.player_done:
                     self.play_round()
@@ -315,12 +363,14 @@ class Game:
         deck = Deck()
         deck.shuffle()
         deck.split(number_of_players)
+        self.players_left = []    # Indekser over spiller som er inne i spillet
 
         for i in range(number_of_players):
             clear()
             print(f"Name of player {i+1}:")
             name = input("> ")
-            self.players.append(Player(name, deck.decks[i]))
+            self.players.append(Player(name, i, deck.decks[i]))
+            self.players_left.append(i)
 
         self.game_state = True    # Spiller er spilt
         self.history = []         # Historikk av alle kort som ble lagt ut
@@ -328,7 +378,6 @@ class Game:
         self.round_type = 0       # Runden spilles 1=enkelt, 2=dobbelt, 3=trippelt, 0=ikke angitt
         self.first_move = True    # Hvis True: spilleren er den første i runden
         self.has_passed = []      # Indekser over spillere som har passert
-        self.is_finished = []     # Indekser over spiller som er ferdig med spillet
         self.player_index = 0     # Indeksen til spiller som spiller runden
 
         while self.game_state:
