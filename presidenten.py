@@ -65,6 +65,7 @@ class Player():
         self.name = name
         self.index = index
         self.deck = deck
+        self.place = 0  # 2: President, 1: Vice President, 0: Nøytral, -1: Vice Boms, -2: Boms
 
 
 
@@ -75,6 +76,9 @@ class Game:
 
 
     def exit(self):
+        """
+        Metode som avlsutter spiller med en fin melding.
+        """
         clear()
         print("Thank you for playing!")
         print("© 2021-2022 Made by Dawid Sz.")
@@ -83,6 +87,10 @@ class Game:
 
 
     def main_menu(self):
+        """
+        Hovedmeny metoden. Lar spilleren opprette nytt eller laste inn gammelt spill,
+        stille inn innstillinger eller gå ut av spillet.
+        """
         if self.message is not None:
             print(self.message + "\n")
             self.message = None
@@ -118,6 +126,9 @@ class Game:
 
 
     def common_num_freq(self, deck):
+        """
+        Metoden returnerer frekvensen av typetall "kortet"
+        """
         values = list(zip(*deck))[1]
 
         play = 1
@@ -137,6 +148,12 @@ class Game:
 
 
     def is_greater(self, card1, card2):
+        """
+        Metoden sjekker om kort1 er større enn kort2.
+        Tar høyde for at 2 er større enn 3 også videre.
+
+        Returnerer True/False, om kortet er større/mindre.
+        """
         index1 = self.order_of_cards.index(card1)
         index2 = self.order_of_cards.index(card2)
 
@@ -144,6 +161,10 @@ class Game:
 
 
     def nice_convert(self, card):
+        """
+        Metoden tar inn kortet og gir den en finere formatering.
+        Returnerer formatert symbol og verdi.
+        """
         symbols = {'club':'♣', 'spade':'♠', 'heart':'♥', 'diamond':'♦'}
         values = {1:'A', 11:'J', 12:'Q', 13:'K'}
 
@@ -174,6 +195,9 @@ class Game:
 
 
     def help(self):
+        """
+        Methoden printer ut en hjelp-melding som beskriver hvordan man spiller.
+        """
         clear()
         print("For å velge et kort, skriv kortnummeret og bekreft med ENTER.")
         print("For å angre, skriv kortnummeret til kortet du vil angre på, og bekreft med ENTER.")
@@ -184,6 +208,9 @@ class Game:
 
 
     def is_int(self, str):
+        """
+        Hjelpemetode for å sjekke om en strenge inneholder kun siffre.
+        """
         numbers = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
         for i in str:
             if i not in numbers:
@@ -193,8 +220,12 @@ class Game:
 
 
     def valid_choice(self):
-        choice_is_valid = True
-
+        """
+        Metode som utfra omstendighetene (hvor mange kort runden spilles på,
+        hvilke kort som spillere er på vei til å legge ut) bestemmer om spilleren
+        har lagt ut en lovlig kombinasjon av kort.
+        Returnerer True/False hvis kombinasjonen er lovlig/ulovlig.
+        """
         # SJEKK OM SISTE KORTET FRA BUNKEN TIL SPILLEREN SOM ER BLITT LAGT UT ER KLØVER 3
         if len(self.players[self.player_index].deck) == 1:
             if self.players[self.player_index].deck[self.chosen[0]] == ("club", 3):
@@ -210,6 +241,8 @@ class Game:
 
         # SJEKK OM KLØVER 3 BLE LAGT UT ALENE
         if self.players[self.player_index].deck[self.chosen[0]] == ("club", 3) and len(self.chosen) == 1:
+            self.players[self.player_index].place = -2
+            self.players_left.remove(self.player_index)
             return True
 
         # SJEKK OM SPILLEREN HAR VALGT RIKTIG ANTALL KORT
@@ -256,6 +289,9 @@ class Game:
 
 
     def make_move(self):
+        """
+        Metode som legger ut kortene med de indeksene som er i self.chosen.
+        """
         cards = []
         self.chosen.sort(reverse=True)
         for i in self.chosen:
@@ -274,12 +310,18 @@ class Game:
 
 
     def check_all_passed(self):
+        """
+        Metode som sjekker hvis alle har passert.
+        """
         if len(self.players_left)-1 <= len(self.has_passed):
             self.has_passed = []
             self.first_move = True
 
 
     def next_player(self):
+        """
+        Metode som setter indexen til den neste spilleren som er i spillet.
+        """
         if self.player_index >= self.players_left[-1]:
             for i in self.players_left:
                 if i not in self.has_passed:
@@ -295,6 +337,9 @@ class Game:
 
 
     def play_round(self):
+        """
+        Metode som utfører algoritmen for en runde.
+        """
         clear()
         print(f"Nå er det {self.players[self.player_index].name} som spiller!")
         print(f"self.chosen: {self.chosen}")
@@ -349,6 +394,10 @@ class Game:
 
 
     def run_game(self):
+        """
+        !!!DENNE METODEN MÅ FIKSES PÅ!!!
+          > INNEHOLDER IKKE self.players_left
+        """
         clear()
         for i in range(len(self.players)):
             if i not in self.has_passed:
@@ -358,6 +407,11 @@ class Game:
 
 
     def init_game(self, number_of_players):
+        """
+        Metoden tar inn antall spillere, så ber spillere om inputs.
+        Oppretter spillere, kortbunkene, setter standard innstillinger og
+        kjører en while-løkke til spillet er slutt.
+        """
         clear()
         self.players = []
         deck = Deck()
