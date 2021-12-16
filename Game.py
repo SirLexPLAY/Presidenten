@@ -5,9 +5,16 @@ clear = lambda: os.system('clear')
 clear()
 
 class Game:
+    """
+    En kommentar til self.jokers listen:
+    Hvert element er en tuppel, der første elementet er indeksen til
+    trekket i historien, og det andre elementet er da verdien til jokere
+    som ble bestemt av spilleren.
+    """
+
     def __init__(self):
         self.message = None
-        self.order_of_cards = [3,4,5,7,8,9,10,11,12,13,1,2]
+        self.order_of_cards = [3,4,5,7,8,9,10,11,12,13,1,2,6]
 
 
     def exit(self):
@@ -95,7 +102,7 @@ class Game:
         return index1 > index2
 
 
-    def nice_convert(self, card):
+    def nice_convert_card(self, card):
         """
         Metoden tar inn kortet og gir den en finere formatering.
         Returnerer formatert symbol og verdi.
@@ -111,6 +118,18 @@ class Game:
         return sym, val
 
 
+    def input_value_convert(self, val):
+        """
+        Tar inn en verdi fra spilleren. Dersom den er J, Q eller K, blir
+        den konvertert til en forståelig for programmet tallverdi.
+        """
+        values = {'A':1, 'J':11, 'Q':12, 'K':13}
+        if val in values:
+            return values[val.upper()]
+        else:
+            return int(val)
+
+
     def nice_print(self, deck, chosen):
         """
         Tar inn liste (bunke) med kort.
@@ -118,7 +137,7 @@ class Game:
         """
         print("Dette er dine kort: \n")
         for i in range(len(deck)):
-            sym, val = self.nice_convert(deck[i])
+            sym, val = self.nice_convert_card(deck[i])
 
             if i in chosen:
                 string = f'> {i+1:2}. {sym}{val}'
@@ -154,7 +173,57 @@ class Game:
         return True
 
 
-    def valid_choice(self):
+    def get_last_value(self):
+        if len(self.history) == 0:
+            return
+        last_move = self.history[-1]
+        last_move_value = None
+        for sym, val in last_move:
+            if val != 6:
+                last_move_value = val
+
+        # Dersom ingen verdi ble bestemt utfra siste trekk i historien,
+        # betyr det at det ble lagt ut seksere alene. Må derfor finne
+        # hvilken verdi disse seksere ble gitt.
+        if last_move_value is None:
+            last_move_value = self.jokers[-1][1]
+
+        return last_move_value
+
+    # WHATTHAFUCK
+    def get_last_cards(self):
+        cards = []
+        for i in self.chosen:
+            cards.append(self.players[self.player_index].deck[i])
+
+        return cards
+
+    # WHATTHAFUCK
+    def check_jokers_alone(self):
+        cards = self.get_last_cards()
+
+        values = list(list((zip(*cards)))[1])
+        if len(set(values)) != 1:
+            return
+
+        self.jokers_alone()
+
+
+    def jokers_alone(self):
+        last_value = self.get_last_value()
+
+        output = None
+        while output is None:
+            clear()
+            print(f"Du har lagt ut {len(self.chosen)} alene!")
+            print(f"Æren skal du få, av å velge en verdi høyere enn eller lik {last_value}!")
+            player_input = input("> ")
+            player_input = self.input_value_convert(player_input)
+            if self.is_greater(player_input, last_value) or player_input == last_move:
+                output = player_input
+
+
+    def validate(self):
         """
         Metode som utfra omstendighetene (hvor mange kort runden spilles på,
         hvilke kort som spillere er på vei til å legge ut) bestemmer om spilleren
@@ -193,9 +262,7 @@ class Game:
             return False
 
         # SJEKK OM KORTENE SPILLEREN VIL LEGGE UT HAR SAMME VERDI
-        cards = []
-        for i in self.chosen:
-            cards.append(self.players[self.player_index].deck[i])
+        cards = self.get_last_cards()
 
         values = list(list((zip(*cards)))[1])
         jokers = 0  # Teller antall jokere
@@ -210,15 +277,16 @@ class Game:
                     return False
 
         # SJEKK OM VERDIEN ER HØYERE ENN VERDIEN FRA FORRIGE SPILLER
+        values = list(list((zip(*cards)))[1])
         if not self.first_move:
-            last_move = self.history[-1]
-            last_move_value = 0
-            for card in last_move:
-                if card[1] != 6:
-                    last_move_value = card[1]
+            last_move_value = self.get_last_value()
             if self.is_greater(last_move_value, values[0]):
                 self.message = "Du må velge kort med høyere verdi enn det forrige spiller har lagt ut!"
                 return False
+
+        # SJEKK OM SPILLEREN HAR LAGT UT KUN SEKSERE
+        self.check_jokers_alone()
+
 
         return True
 
@@ -247,6 +315,8 @@ class Game:
     def check_all_passed(self):
         """
         Metode som sjekker hvis alle har passert.
+        Setter listen over passerte spillere lik tom liste,
+        samt first_move variablen til True dersom alle har passert.
         """
         if len(self.players_left)-1 <= len(self.has_passed):
             self.has_passed = []
@@ -285,7 +355,7 @@ class Game:
         else:
             print(f"Forrige kort som ble lagt ut er: ", end="")
             for card in self.history[-1]:
-                sym, val = self.nice_convert(card)
+                sym, val = self.nice_convert_card(card)
                 print(f"{sym}{val} ", end="")
             print()
             print(f"Hva vil du gjøre? Du må legge ut {self.round_type} kort.")
@@ -306,7 +376,7 @@ class Game:
             elif option.lower() == "ferdig":
                 if self.first_move:
                     self.round_type = len(self.chosen)
-                if self.valid_choice():
+                if self.validate():
                     self.make_move()
             elif option.lower() == "passer":
                 self.chosen = []
@@ -363,11 +433,12 @@ class Game:
 
         self.game_state = True    # Spiller er spilt
         self.history = []         # Historikk av alle kort som ble lagt ut
-        self.chosen = []          # Hvilke kort som ble valgt av spilleren.
+        self.chosen = []          # Hvilke kort som ble valgt av spilleren
         self.round_type = 0       # Runden spilles 1=enkelt, 2=dobbelt, 3=trippelt, 0=ikke angitt
         self.first_move = True    # Hvis True: spilleren er den første i runden
         self.has_passed = []      # Indekser over spillere som har passert
         self.player_index = 0     # Indeksen til spiller som spiller runden
+        self.jokers = []          # Liste over jokere som ble lagt ut alene
 
         while self.game_state:
             self.run_game()
