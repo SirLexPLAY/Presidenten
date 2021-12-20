@@ -4,8 +4,14 @@ from animation import animation
 from termcolor import colored
 import time
 import os
+import sys
 clear = lambda: os.system('clear')
 clear()
+
+developer_mode = False
+if len(sys.argv) != 1:
+    if sys.argv[1] == "dev":
+        developer_mode = True
 
 class Game:
     """
@@ -37,7 +43,6 @@ class Game:
         stille inn innstillinger eller gå ut av spillet.
         """
 
-
         animation()
         if self.message is not None:
             print(self.message + "\n")
@@ -50,7 +55,13 @@ class Game:
         time.sleep(0.08)
         print("3. Innstillinger ", colored('(INDEV)', 'blue', attrs=['blink']))
         time.sleep(0.08)
-        print("4. Gå ut av spillet")
+        if developer_mode:
+            print("4. DEVELOPER SETTINGS")
+            time.sleep(0.08)
+            print("5. Gå ut av spillet")
+        else:
+            print("4. Gå ut av spillet")
+
 
         choice = input("> ")
         if choice is not "":
@@ -62,8 +73,15 @@ class Game:
         elif choice == 1:
             clear()
 
-            print("Hvor mange spillere?")
-            number_of_players = int(input("> "))
+            while True:
+                clear()
+                print("Hvor mange spillere?")
+                number_of_players = input("> ")
+                if self.is_int(number_of_players):
+                    if number_of_players is not "":
+                        number_of_players = int(number_of_players)
+                        break
+
             self.init_game(number_of_players)
 
         elif choice == 2:
@@ -197,6 +215,9 @@ class Game:
 
 
     def get_last_value(self):
+        """
+        Henter ut den verdien som ble lagt ut i det siste kortet av bunken.
+        """
         if len(self.history) == 0:
             return
         last_move = self.history[-1]
@@ -339,13 +360,50 @@ class Game:
         self.history.append(cards)
         self.chosen = []
 
+
         if ("club", 3) in cards:
+            self.first_move = True
+        elif self.check_four_on_table():
+            self.message = "De siste fire kortene på bunken er alle like! Du kan begynne ny runde."
+            self.has_passed = []
             self.first_move = True
         elif self.first_move:
             self.first_move = False
             self.next_player()
         else:
             self.next_player()
+
+
+    def check_four_on_table(self):
+        """
+        Metode som sjekker hvis det er fire like på bordet til enhver tid.
+        Dersom spilleren legger ut det fjerde kortet, slår den ut bunken
+        og starter på en ny runde.
+        """
+        if len(self.history) == 0:
+            return
+
+        hist = self.history.copy()
+        hist.reverse()
+
+        count = 0
+        last_val = hist[0][0][1]
+        to_break = False
+        for move in hist:
+            for card in move:
+                if card[1] == last_val:
+                    count += 1
+                else:
+                    to_break = True
+                if to_break:
+                    break
+            if to_break:
+                break
+
+        if count >= 4:
+            return True
+        return False
+
 
 
     def check_all_passed(self):
@@ -382,10 +440,16 @@ class Game:
         Metode som utfører algoritmen for en runde.
         """
         clear()
+        self.check_four_on_table()
         print(f"Nå er det {self.players[self.player_index].name} som spiller!")
-        print(f"self.chosen: {self.chosen}")
+        print(f"self.history: {self.history}")
         self.max_cards = self.common_num_freq(self.players[self.player_index].deck)
         self.nice_print(self.players[self.player_index].deck, self.chosen)
+        if self.message is not None:
+            print(self.message)
+            self.message = None
+            print()
+
         if self.first_move:
             print(f"Hva vil du gjøre? Du kan starte spillet med {self.max_cards} kort.")
         else:
@@ -396,10 +460,6 @@ class Game:
             print()
             print(f"Hva vil du gjøre? Du må legge ut {self.round_type} kort.")
         print(f"Skriv 'HJELP' for å få opp en liste med kommandoer.")
-        if self.message is not None:
-            print(self.message)
-            print()
-            self.message = None
         option = input("> ")
 
         is_int = self.is_int(option)
@@ -467,8 +527,8 @@ class Game:
             self.players.append(Player(name, i, deck.decks[i]))
             self.players_left.append(i)
 
-        self.game_state = True    # Spillet er spilt
         self.history = []         # Historikk av alle kort som ble lagt ut
+        self.game_state = True    # Spillet er spilt
         self.chosen = []          # Hvilke kort som ble valgt av spilleren
         self.round_type = 0       # Runden spilles 1=enkelt, 2=dobbelt, 3=trippelt, 0=ikke angitt
         self.first_move = True    # Hvis True: spilleren er den første i runden
