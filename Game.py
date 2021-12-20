@@ -1,5 +1,8 @@
 from Deck import Deck
 from Player import Player
+from animation import animation
+from termcolor import colored
+import time
 import os
 clear = lambda: os.system('clear')
 clear()
@@ -33,16 +36,22 @@ class Game:
         Hovedmeny metoden. Lar spilleren opprette nytt eller laste inn gammelt spill,
         stille inn innstillinger eller gå ut av spillet.
         """
+
+
+        animation()
         if self.message is not None:
             print(self.message + "\n")
             self.message = None
-
-        print("Velkommen til Presidenten!")
         print("Hva vil du gjøre?")
+        time.sleep(0.08)
         print("1. Starte nytt spill")
-        print("2. Laste inn et spill (INDEV)")
-        print("3. Innstillinger (INDEV)")
+        time.sleep(0.08)
+        print("2. Laste inn et spill ", colored('(INDEV)', 'blue', attrs=['blink']))
+        time.sleep(0.08)
+        print("3. Innstillinger ", colored('(INDEV)', 'blue', attrs=['blink']))
+        time.sleep(0.08)
         print("4. Gå ut av spillet")
+
         choice = input("> ")
         if choice is not "":
             choice = int(choice)
@@ -72,6 +81,7 @@ class Game:
         Metoden returnerer frekvensen av typetall "kortet"
         """
         values = list(zip(*deck))[1]
+        values = list(values)
 
         play = 1
         count = 0
@@ -85,6 +95,13 @@ class Game:
             else:
                 val = i
                 count = 1
+
+        while 6 in values:
+            values.remove(6)
+            play += 1
+
+        if play > 4:
+            play = 4
 
         return play
 
@@ -140,9 +157,15 @@ class Game:
             sym, val = self.nice_convert_card(deck[i])
 
             if i in chosen:
-                string = f'> {i+1:2}. {sym}{val}'
+                if sym == "♥" or sym == "♦":
+                    string = f'> {i+1:2}. ' + colored(sym, 'red') + f'{val}'
+                else:
+                    string = f'> {i+1:2}. {sym}{val}'
             else:
-                string = f'  {i+1:2}. {sym}{val}'
+                if sym == "♥" or sym == "♦":
+                    string = f'  {i+1:2}. ' + colored(sym, 'red') + f'{val}'
+                else:
+                    string = f'  {i+1:2}. {sym}{val}'
 
             print(string)
         print("")
@@ -190,26 +213,39 @@ class Game:
 
         return last_move_value
 
-    # WHATTHAFUCK
-    def get_last_cards(self):
+
+    def get_players_chosen(self):
+        """
+        Metode som henter ut kortene som spilleren har valgt ut til å legge ut.
+        self.chosen er en liste med indekser.
+        """
         cards = []
         for i in self.chosen:
             cards.append(self.players[self.player_index].deck[i])
 
         return cards
 
-    # WHATTHAFUCK
+
     def check_jokers_alone(self):
-        cards = self.get_last_cards()
+        """
+        Metode som kaller på self.jokers_alone() om ikke en void return blir
+        gjort før. Metoden sjekker hvis en (eller flere) jokere ble lagt ut
+        alene.
+        """
+        cards = self.get_players_chosen()
 
         values = list(list((zip(*cards)))[1])
-        if len(set(values)) != 1:
+        if set(values) != {6}:
             return
 
         self.jokers_alone()
 
 
     def jokers_alone(self):
+        """
+        Metode som spør om hvilken verdi spilleren vil gi til sekseren(rne) sin(e),
+        dersom de(n) ble lagt ut uten annet kort.
+        """
         last_value = self.get_last_value()
 
         output = None
@@ -262,7 +298,7 @@ class Game:
             return False
 
         # SJEKK OM KORTENE SPILLEREN VIL LEGGE UT HAR SAMME VERDI
-        cards = self.get_last_cards()
+        cards = self.get_players_chosen()
 
         values = list(list((zip(*cards)))[1])
         jokers = 0  # Teller antall jokere
@@ -431,7 +467,7 @@ class Game:
             self.players.append(Player(name, i, deck.decks[i]))
             self.players_left.append(i)
 
-        self.game_state = True    # Spiller er spilt
+        self.game_state = True    # Spillet er spilt
         self.history = []         # Historikk av alle kort som ble lagt ut
         self.chosen = []          # Hvilke kort som ble valgt av spilleren
         self.round_type = 0       # Runden spilles 1=enkelt, 2=dobbelt, 3=trippelt, 0=ikke angitt
