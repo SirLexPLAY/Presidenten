@@ -8,10 +8,6 @@ import sys
 clear = lambda: os.system('clear')
 clear()
 
-developer_mode = False
-if len(sys.argv) != 1:
-    if sys.argv[1] == "dev":
-        developer_mode = True
 
 class Game:
     """
@@ -276,7 +272,7 @@ class Game:
             print(f"Æren skal du få, av å velge en verdi høyere enn eller lik {last_value}!")
             player_input = input("> ")
             player_input = self.input_value_convert(player_input)
-            if self.is_greater(player_input, last_value) or player_input == last_move:
+            if self.is_greater(player_input, last_value) or player_input == last_value:
                 output = player_input
 
 
@@ -288,47 +284,85 @@ class Game:
         plassen; i en situasjon der spilleren har lagt ut kløver 3 som sitt
         siste kort. Spilleren er ferdig med nåværende spillet.
         """
-        places = []
-        for player in self.players:
-            places.append(player.place)
-
-        # I tilfelle det er to spillere: en blir presidenten, den andre bomsen
-        if len(self.players) == 2:
-            self.places[2] = self.player_index
-            self.players_left.remove(self.player_index)
-            self.places[-2] = self.players_left[0]
-            self.players_left.pop(0)
-
-        # I tilfelle det er tre spillere: en blir presidenten, den andre nøytral og siste bomsen
-        elif len(self.players) == 3:
-            if 2 not in places:
+        if place == 'next':
+            # I tilfelle det er to spillere: en blir presidenten, den andre bomsen
+            if len(self.players) == 2:
                 self.places[2] = self.player_index
-                self.players_left.remove(self.player_index)
-            elif -2 not in places and len(players_left) == 2:
-                self.places[0] = self.player_index
                 self.players_left.remove(self.player_index)
                 self.places[-2] = self.players_left[0]
                 self.players_left.pop(0)
 
-        # Vanlig opplegg med president, visepresident, viseboms og boms
-        elif len(self.players) > 3:
-            if 2 not in places:
-                self.places[2] = self.player_index
+            # I tilfelle det er tre spillere: en blir presidenten, den andre nøytral og siste bomsen
+            elif len(self.players) == 3:
+                if 2 not in self.places:
+                    self.places[2] = self.player_index
+                    self.players_left.remove(self.player_index)
+                elif -2 not in self.places and len(players_left) == 2:
+                    self.places[0] = self.player_index
+                    self.players_left.remove(self.player_index)
+                    self.places[-2] = self.players_left[0]
+                    self.players_left.pop(0)
+
+            # Vanlig opplegg med president, visepresident, viseboms og boms
+            elif len(self.players) > 3:
+                if 2 not in self.places:
+                    self.places[2] = self.player_index
+                    self.players_left.remove(self.player_index)
+                elif 1 not in self.places:
+                    self.places[1] = self.player_index
+                    self.players_left.remove(self.player_index)
+                elif len(players_left) > 2:
+                    if 0 not in self.places:
+                        self.places[0] = [self.player_index]
+                    else:
+                        self.places[0].append(self.player_index)
+                    self.players_left.remove(self.player_index)
+                elif -2 in self.places and len(self.players_left) == 2:
+                    self.places[0] = self.player_index
+                    self.players_left.remove(self.player_index)
+                    self.places[-1] = self.players_left[0]
+                    self.players_left.pop(0)
+                elif len(self.players_left) == 2:
+                    self.places[-1] = self.player_index
+                    self.players_left.remove(self.player_index)
+                    self.places[-2] = self.players_left[0]
+                    self.players_left.pop(0)
+
+        if place == 'boms':
+            # I tilfelle to spillere
+            if len(self.players) == 2:
+                self.places[-2] = self.player_index
                 self.players_left.remove(self.player_index)
-            elif 1 not in places:
-                self.places[1] = self.player_index
-                self.players_left.remove(self.player_index)
-            elif -1 not in places and len(players_left) > 2:
-                if 0 in self.places:
-                    self.places[0] = [self.player_index]
+                self.places[2] = self.players_left[0]
+                self.players_left.pop(0)
+
+            # I tilfelle tre spillere
+            if len(self.players) == 3:
+                # I tilfelle tre spillere igjen inne i spillet:
+                # bare legg den gitte spilleren til å bli boms
+                if len(self.players_left) == 3:
+                    self.places[-2] = self.player_index
+                    self.players_left.remove(self.player_index)
+
+                # I tilfelle to spillere igjen inne i spillet:
+                # legg den gitte spilleren til å bli boms,
+                # la den siste bli nøytral
                 else:
-                    self.places[0].append(self.player_index)
-                self.players_left.remove(self.player_index)
-            elif -1 not in places and len(players_left) == 2:
-                self.places[-1] = self.player_index
-                self.players_left.remove(self.player_index)
-                self.places[-2] = self.players_left[0]
-                self.players_left.pop(0)
+                    self.places[-2] = self.player_index
+                    self.players_left.remove(self.player_index)
+                    self.places[0] = self.players_left[0]
+                    self.players_left.pop(0)
+
+            # I tilfelle fire eller flere spillere
+            if len(self.players) > 3:
+                if len(self.players_left) == 2:
+                    self.places[-2] = self.player_index
+                    self.players_left.remove(self.player_index)
+                    self.places[-1] = self.players_left[0]
+                    self.players_left.pop(0)
+                else:
+                    self.places[-2] = self.player_index
+                    self.players_left.remove(self.player_index)
 
 
     def validate(self):
@@ -419,8 +453,10 @@ class Game:
             input("Klikk ENTER for å fortsette...")
 
         if ("club", 3) in cards:
-            self.first_move = True
             self.has_passed = []
+            self.history.append(self.current_history)
+            self.current_history = []
+            self.first_move = True
         elif self.check_more_than_four_on_table():
             self.message = "De siste fire (eller flere) kortene på bunken er alle like! Du kan begynne ny runde."
             self.has_passed = []
