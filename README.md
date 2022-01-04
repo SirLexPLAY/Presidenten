@@ -13,4 +13,7 @@ Prosjekt som handler om å få simulert kortspillet "Presidenten"
 - [LP] Gjøre det mulig å koble opp til en database og laste opp scoreboard, statistikk osv til en nettside for eksempel
 
 # Bugs
-- metode self.check_more_than_four_on_table() tar hensyn til HELE historikken, og ikke bare de siste kortene. Det kan derfor tillate at spillere kan slå ut bunken med to kort på en tom bunke, bare fordi de to kortene som ble lagt ut, er av samme verdi som de to siste i historikken.
+- metode self.check_more_than_four_on_table() tar hensyn til HELE historikken, og ikke bare de siste kortene. Det kan derfor tillate at spillere kan slå ut bunken med to kort på en tom bunke, bare fordi de to kortene som ble lagt ut, er av samme verdi som de to siste i historikken. **(KANSKJE FIKSET?)**
+
+# Ting å sjekke opp
+- burde spille et helt spill ferdig, så se hva som skjer: om spillerne får tilskrevet riktige plasser (pres., boms, vicepres., viceboms, nøytral) og om alt blir printet fint. Hva som skjer etterpå er det ikke enda skrevet kode til. (dvs. hva hvis spilleren sier ja: la spillere gjøre utveksling av kort osv...)
