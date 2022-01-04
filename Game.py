@@ -9,6 +9,12 @@ clear = lambda: os.system('clear')
 clear()
 
 
+developer_mode = False
+if len(sys.argv) != 1:
+    if sys.argv[1] == "dev":
+        developer_mode = True
+
+
 class Game:
     """
     En kommentar til self.jokers listen:
@@ -51,6 +57,7 @@ class Game:
         time.sleep(0.08)
         print("3. Innstillinger ", colored('(INDEV)', 'blue', attrs=['blink']))
         time.sleep(0.08)
+        global developer_mode
         if developer_mode:
             print("4. DEVELOPER SETTINGS")
             time.sleep(0.08)
