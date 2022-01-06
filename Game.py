@@ -18,8 +18,7 @@ if len(sys.argv) != 1:
 class Game:
     """
     En kommentar til self.jokers listen:
-    Hvert element er en tuppel, der første elementet er indeksen til
-    trekket i historien, og det andre elementet er da verdien til jokere
+    Hvert element er et heltall, som er da verdien til jokere
     som ble bestemt av spilleren.
     """
 
@@ -101,6 +100,7 @@ class Game:
         """
         Metoden returnerer frekvensen av typetall "kortet"
         """
+        print(f"values = {list(zip(*deck))}")
         values = list(zip(*deck))[1]
         values = list(values)
 
@@ -161,9 +161,11 @@ class Game:
         Tar inn en verdi fra spilleren. Dersom den er J, Q eller K, blir
         den konvertert til en forståelig for programmet tallverdi.
         """
-        values = {'A':1, 'J':11, 'Q':12, 'K':13}
-        if val in values:
+        values = {'A':1, 'J':11, 'Q':12, 'K':13, 1:'A', 11:'J', 12:'Q', 13:'K'}
+        if val in values and isinstance(val, str):
             return values[val.upper()]
+        elif val in values and isinstance(val, int):
+            return values[val]
         else:
             return int(val)
 
@@ -232,8 +234,8 @@ class Game:
         # Dersom ingen verdi ble bestemt utfra siste trekk i historien,
         # betyr det at det ble lagt ut seksere alene. Må derfor finne
         # hvilken verdi disse seksere ble gitt.
-        if last_move_value is None:
-            last_move_value = self.jokers[-1][1]
+        if last_move_value is None and len(self.jokers) > 0:
+            last_move_value = self.jokers[-1]
 
         return last_move_value
 
@@ -265,22 +267,47 @@ class Game:
         self.jokers_alone()
 
 
+    def check_jokers_alone_history(self):
+        """
+        Metode som sjekker i self.current_history om det siste trekket er
+        med bare jokere alene.
+        """
+        cards = self.current_history[-1]
+
+        values = list(list((zip(*cards)))[1])
+        if set(values) != {6}:
+            return False
+        else:
+            return True
+
+
     def jokers_alone(self):
         """
         Metode som spør om hvilken verdi spilleren vil gi til sekseren(rne) sin(e),
         dersom de(n) ble lagt ut uten annet kort.
         """
-        last_value = self.get_last_value()
+        if len(self.current_history) > 0:
+            last_value = self.get_last_value()
+            nice_last_value = self.input_value_convert(last_value)
 
-        output = None
-        while output is None:
+            output = None
+            while output is None:
+                clear()
+                print(f"Du har lagt ut {len(self.chosen)} alene!")
+                print(f"Æren skal du få, av å velge en verdi høyere enn eller lik {nice_last_value}!")
+                player_input = input("> ")
+                player_input = self.input_value_convert(player_input)
+                if self.is_greater(player_input, last_value) or player_input == last_value:
+                    output = player_input
+        else:
             clear()
             print(f"Du har lagt ut {len(self.chosen)} alene!")
-            print(f"Æren skal du få, av å velge en verdi høyere enn eller lik {last_value}!")
+            print(f"Æren skal du få, av å velge en verdi!")
             player_input = input("> ")
             player_input = self.input_value_convert(player_input)
-            if self.is_greater(player_input, last_value) or player_input == last_value:
-                output = player_input
+            output = player_input
+
+        self.jokers.append(output)
 
 
     def player_end(self, place='next'):
@@ -294,21 +321,28 @@ class Game:
         if place == 'next':
             # I tilfelle det er to spillere: en blir presidenten, den andre bomsen
             if len(self.players) == 2:
-                self.places[2] = self.player_index
+                self.places[2] = self.players_left[self.player_index]
                 self.players_left.remove(self.player_index)
                 self.places[-2] = self.players_left[0]
                 self.players_left.pop(0)
+                self.start_new_round()
 
             # I tilfelle det er tre spillere: en blir presidenten, den andre nøytral og siste bomsen
             elif len(self.players) == 3:
                 if 2 not in self.places:
-                    self.places[2] = self.player_index
+                    self.places[2] = self.players_left[self.player_index]
                     self.players_left.remove(self.player_index)
-                elif -2 not in self.places and len(players_left) == 2:
-                    self.places[0] = self.player_index
+                elif -2 not in self.places and len(self.players_left) == 2:
+                    print()
+                    print(f"self.places = {self.places}")
+                    print(f"self.player_index = {self.player_index}")
+                    print(f"self.players_left = {self.players_left}")
+                    print()
+                    self.places[0] = self.players_left[self.player_index]
                     self.players_left.remove(self.player_index)
                     self.places[-2] = self.players_left[0]
                     self.players_left.pop(0)
+                    self.start_new_round()
 
             # Vanlig opplegg med president, visepresident, viseboms og boms
             elif len(self.players) > 3:
@@ -318,9 +352,9 @@ class Game:
                 elif 1 not in self.places:
                     self.places[1] = self.player_index
                     self.players_left.remove(self.player_index)
-                elif len(players_left) > 2:
+                elif len(self.players_left) > 2:
                     if 0 not in self.places:
-                        self.places[0] = [self.player_index]
+                        self.places[0] = self.player_index
                     else:
                         self.places[0].append(self.player_index)
                     self.players_left.remove(self.player_index)
@@ -334,6 +368,7 @@ class Game:
                     self.players_left.remove(self.player_index)
                     self.places[-2] = self.players_left[0]
                     self.players_left.pop(0)
+                    self.start_new_round()
 
         if place == 'boms':
             # I tilfelle to spillere
@@ -456,25 +491,26 @@ class Game:
         if len(self.players[self.player_index].deck) == 0:
             clear()
             print(f"Spilleren {self.players[self.player_index].name} har lagt ut det siste kortet!")
-            self.players_left.remove(self.player_index)
             input("Klikk ENTER for å fortsette...")
+            self.player_end()
 
-        if ("club", 3) in cards:
-            self.has_passed = []
-            self.history.append(self.current_history)
-            self.current_history = []
-            self.first_move = True
-        elif self.check_more_than_four_on_table():
-            self.message = "De siste fire (eller flere) kortene på bunken er alle like! Du kan begynne ny runde."
-            self.has_passed = []
-            self.history.append(self.current_history)
-            self.current_history = []
-            self.first_move = True
-        elif self.first_move:
-            self.first_move = False
-            self.next_player()
-        else:
-            self.next_player()
+        if len(self.players_left) > 0:
+            if ("club", 3) in cards:
+                self.has_passed = []
+                self.history.append(self.current_history)
+                self.current_history = []
+                self.first_move = True
+            elif self.check_more_than_four_on_table():
+                self.message = "De siste fire (eller flere) kortene på bunken er alle like! Du kan begynne ny runde."
+                self.has_passed = []
+                self.history.append(self.current_history)
+                self.current_history = []
+                self.first_move = True
+            elif self.first_move:
+                self.first_move = False
+                self.next_player()
+            else:
+                self.next_player()
 
 
     def check_more_than_four_on_table(self):
@@ -518,6 +554,10 @@ class Game:
         samt first_move variablen til True dersom alle har passert.
         """
         if len(self.players_left)-1 <= len(self.has_passed):
+            players_left = self.players_left.copy()
+            has_passed = self.has_passed.copy()
+            last_player_standing = list(set(players_left) ^ set(has_passed))
+            self.player_index = list(last_player_standing)[0]
             self.history.append(self.current_history.copy())
             self.current_history = []
             self.has_passed = []
@@ -528,6 +568,8 @@ class Game:
         """
         Metode som setter indexen til den neste spilleren som er i spillet.
         """
+        if len(self.players_left) == 0:
+            return
         if self.player_index >= self.players_left[-1]:
             for i in self.players_left:
                 if i not in self.has_passed:
@@ -543,13 +585,21 @@ class Game:
 
 
     def all_check(self):
+        """
+        En metode som kjører flere sjekk-metoder samtidig.
+        """
         self.check_more_than_four_on_table()
         self.check_all_passed()
 
 
     def start_new_round(self):
+        """
+        Metode som kjøres når det er ingen spillere igjen og spillet er over.
+        Starter ny runde.
+        """
         while True:
             clear()
+            print(self.places)
             print("Spillet er over! Her er resultatet:")
 
             player_index = self.places[2]
@@ -563,7 +613,12 @@ class Game:
 
             if 0 in self.places:
                 player_indexes = self.places[0]
-                for index in player_indexes:
+                if isinstance(player_indexes, list):
+                    for index in player_indexes:
+                        player_name = self.players[player_index].name
+                        print(f"- Spiller {player_name} er nøytral!")
+                else:
+                    player_index = self.places[0]
                     player_name = self.players[player_index].name
                     print(f"- Spiller {player_name} er nøytral!")
 
@@ -590,7 +645,12 @@ class Game:
         """
         clear()
         print(f"Nå er det {self.players[self.player_index].name} som spiller!")
+        print()
+        print(f"self.player_index: {self.player_index}")
         print(f"self.current_history: {self.current_history}")
+        print(f"self.places: {self.places}")
+        print(f"self.players_left {self.players_left}")
+        print()
         self.max_cards = self.common_num_freq(self.players[self.player_index].deck)
         self.nice_print(self.players[self.player_index].deck, self.chosen)
         if self.message is not None:
@@ -605,7 +665,11 @@ class Game:
             for card in self.current_history[-1]:
                 sym, val = self.nice_convert_card(card)
                 print(f"{sym}{val} ", end="")
-            print()
+            if self.current_history[-1][-1][1] == 6 and self.check_jokers_alone_history():
+                value = self.input_value_convert(self.jokers[-1])
+                print(f", med verdi {value}.")
+            else:
+                print()
             print(f"Hva vil du gjøre? Du må legge ut {self.round_type} kort.")
         print(f"Skriv 'HJELP' for å få opp en liste med kommandoer.")
         option = input("> ")
@@ -643,9 +707,11 @@ class Game:
 
 
     def run_game(self):
+        """
+        Metode som sørger for at til enhver tid en ny runde blir spilt, så lenge
+        to eller flere spillere er i spillet.
+        """
         clear()
-        if range(len(self.players_left)) == 0:
-            self.start_new_round()
         for i in range(len(self.players_left)):
             if i not in self.has_passed:
                 self.player_done = False    # False = spilleren er ikke ferdig, True = spilleren er ferdig
@@ -672,6 +738,9 @@ class Game:
             name = input("> ")
             self.players.append(Player(name, i, deck.decks[i]))
             self.players_left.append(i)
+
+        for player in self.players:
+            player.deck = player.deck[-3:-1]
 
         self.current_history = [] # Historikk av kort som er i nåværende bunken
         self.history = []         # Historikk av alle kort som ble lagt ut
