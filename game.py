@@ -1,5 +1,5 @@
-from Deck import Deck
-from Player import Player
+from deck import Deck
+from player import Player
 from animation import animation
 from termcolor import colored
 import time
@@ -721,7 +721,7 @@ class Game:
 
         for i in range(number_of_players):
             clear()
-            print(f"Name of player {i+1}:")
+            print(f"Navnet til spiller nr. {i+1}:")
             name = input("> ")
             self.players.append(Player(name, i, deck.decks[i]))
             self.players_left.append(i)
