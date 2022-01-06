@@ -17,6 +17,7 @@ Prosjekt som handler om å få simulert kortspillet "Presidenten"
 - gitt tre spillere, A, B og C. A passerer, B spiller, C passerer, da burde B begynne, men i stedet er det spiller A (neste på listen) som begynner
 - det ble lagt ut enkelt verdier: 2, 2, 2 og 6, men slo ikke ut bunken. Samme følgende: 5, 5, 6, 5.
 - en spiller la ut: 6, 4, 4, 4, men slo ikke ut bunken
+- spillet kræsjer noen ganger som følge at self.common_num_freq() får tom deck, når deck[0] prøves å akseseres
 
 # Ting å sjekke opp
 - burde spille et helt spill ferdig, så se hva som skjer: om spillerne får tilskrevet riktige plasser (pres., boms, vicepres., viceboms, nøytral) og om alt blir printet fint. Hva som skjer etterpå er det ikke enda skrevet kode til. (dvs. hva hvis spilleren sier ja: la spillere gjøre utveksling av kort osv...)
