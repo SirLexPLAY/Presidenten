@@ -1,7 +1,7 @@
 import os
 import time
 import sys
-from Game import Game
+from game import Game
 clear = lambda: os.system('clear')
 clear()
 
