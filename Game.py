@@ -100,7 +100,6 @@ class Game:
         """
         Metoden returnerer frekvensen av typetall "kortet"
         """
-        print(f"values = {list(zip(*deck))}")
         values = list(zip(*deck))[1]
         values = list(values)
 
@@ -310,7 +309,7 @@ class Game:
         self.jokers.append(output)
 
 
-    def player_end(self, place='next'):
+    def end_player(self, place='next'):
         """
         Metode som tar inn som input 'next', hvis spilleren skal tilskrives den
         neste plasseringen (f.eks. hvis det er en president allerede, gi den
@@ -321,7 +320,7 @@ class Game:
         if place == 'next':
             # I tilfelle det er to spillere: en blir presidenten, den andre bomsen
             if len(self.players) == 2:
-                self.places[2] = self.players_left[self.player_index]
+                self.places[2] = self.player_index
                 self.players_left.remove(self.player_index)
                 self.places[-2] = self.players_left[0]
                 self.players_left.pop(0)
@@ -330,15 +329,10 @@ class Game:
             # I tilfelle det er tre spillere: en blir presidenten, den andre nøytral og siste bomsen
             elif len(self.players) == 3:
                 if 2 not in self.places:
-                    self.places[2] = self.players_left[self.player_index]
+                    self.places[2] = self.player_index
                     self.players_left.remove(self.player_index)
                 elif -2 not in self.places and len(self.players_left) == 2:
-                    print()
-                    print(f"self.places = {self.places}")
-                    print(f"self.player_index = {self.player_index}")
-                    print(f"self.players_left = {self.players_left}")
-                    print()
-                    self.places[0] = self.players_left[self.player_index]
+                    self.places[0] = self.player_index
                     self.players_left.remove(self.player_index)
                     self.places[-2] = self.players_left[0]
                     self.players_left.pop(0)
@@ -425,7 +419,7 @@ class Game:
         players_chosen = self.get_players_chosen()
         deck_length = len(self.players[self.player_index].deck)
         if players_chosen[0] == ("club", 3) and deck_length == 1:
-            self.player_end('boms')
+            self.end_player('boms')
             self.players_left.remove(self.player_index)
             player_name = self.players[self.player_index].name
             self.message = f"Spiller {player_name} er ute som boms!\n ♣3 ble lagt ut som spillerens siste kort."
@@ -492,7 +486,7 @@ class Game:
             clear()
             print(f"Spilleren {self.players[self.player_index].name} har lagt ut det siste kortet!")
             input("Klikk ENTER for å fortsette...")
-            self.player_end()
+            self.end_player()
 
         if len(self.players_left) > 0:
             if ("club", 3) in cards:
@@ -553,13 +547,10 @@ class Game:
         Setter listen over passerte spillere lik tom liste,
         samt first_move variablen til True dersom alle har passert.
         """
-        if len(self.players_left)-1 <= len(self.has_passed):
-            players_left = self.players_left.copy()
-            has_passed = self.has_passed.copy()
-            last_player_standing = list(set(players_left) ^ set(has_passed))
-            self.player_index = list(last_player_standing)[0]
+        if len(self.players_left) == len(self.has_passed):
             self.history.append(self.current_history.copy())
             self.current_history = []
+            self.player_index = self.has_passed[0]
             self.has_passed = []
             self.first_move = True
 
@@ -645,12 +636,6 @@ class Game:
         """
         clear()
         print(f"Nå er det {self.players[self.player_index].name} som spiller!")
-        print()
-        print(f"self.player_index: {self.player_index}")
-        print(f"self.current_history: {self.current_history}")
-        print(f"self.places: {self.places}")
-        print(f"self.players_left {self.players_left}")
-        print()
         self.max_cards = self.common_num_freq(self.players[self.player_index].deck)
         self.nice_print(self.players[self.player_index].deck, self.chosen)
         if self.message is not None:
@@ -681,11 +666,13 @@ class Game:
         elif not is_int:
             if option.lower() == "hjelp":
                 self.help()
-            elif option.lower() == "ferdig":
+            elif option.lower() == "ferdig" and len(self.chosen) > 0:
                 if self.first_move:
                     self.round_type = len(self.chosen)
                 if self.validate():
                     self.make_move()
+            elif option.lower() == "ferdig" and len(self.chosen) == 0:
+                self.message = "Ingen kort ble valgt!"
             elif option.lower() == "passer":
                 self.chosen = []
                 self.has_passed.append(self.player_index)
@@ -739,8 +726,8 @@ class Game:
             self.players.append(Player(name, i, deck.decks[i]))
             self.players_left.append(i)
 
-        for player in self.players:
-            player.deck = player.deck[-3:-1]
+        #for player in self.players:
+        #    player.deck = player.deck[-3:-1]
 
         self.current_history = [] # Historikk av kort som er i nåværende bunken
         self.history = []         # Historikk av alle kort som ble lagt ut
