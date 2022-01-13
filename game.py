@@ -98,7 +98,7 @@ class Game:
 
     def common_num_freq(self, deck):
         """
-        Metoden returnerer frekvensen av typetall "kortet"
+        Metoden returnerer forekomsten av det typeste kortet
         """
         values = list(zip(*deck))[1]
         values = list(values)
